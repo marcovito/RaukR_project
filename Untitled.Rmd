@@ -1,0 +1,16 @@
+---
+title: "marco_1"
+author: "Marco Vicari"
+date: "2023-06-17"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+setwd("/Users/marcovicari/Library/CloudStorage/OneDrive-KTH/courses/NBIS_RaukR/RaukR_project")
+usethis::use_git()
+```
+
