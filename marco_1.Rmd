@@ -1,0 +1,122 @@
+---
+title: "marco_1"
+author: "Marco Vicari"
+date: "2023-06-17"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+setwd("/Users/marcovicari/Library/CloudStorage/OneDrive-KTH/courses/NBIS_RaukR/RaukR_project")
+
+```
+
+# Libraries
+```{r}
+library(tidyverse)
+library(shiny)
+```
+
+# Project variables
+```{r}
+project.dir <- "/Users/marcovicari/Library/CloudStorage/OneDrive-KTH/courses/NBIS_RaukR/RaukR_project"
+data.dir <- "/Users/marcovicari/Library/CloudStorage/OneDrive-KTH/courses/NBIS_RaukR/RAUKR/"
+```
+
+# Pull taxonomy
+```{r}
+tax <- read.csv(paste0(data.dir, "taxonomy.tsv"), header = T, sep = "\t", check.names = F)
+names(tax) <- c("GeneID", "assigned_taxonomy")
+random_n <- floor(runif(1, min = 1, max = nrow(tax)))
+test_gene <- tax[random_n,1]
+tax_vars <- names(tax)
+tax_info <- tax %>% 
+  filter(.data[[tax_vars[[1]]]] == test_gene) %>% 
+  pull(assigned_taxonomy)
+
+```
+
+# Annotation
+```{r}
+ann <- read.csv(paste0(data.dir, "annotations.tsv"), header = T, sep = "\t", check.names = F)
+names(ann)[1] <- "GeneID"
+
+KEEG_list<-function(x ,sep){
+  my_list <- str_split(x, ",")%>% unlist()
+  element<-my_list[grep("[K]\\d",  my_list)]
+  text<-str_split(element," ")%>% unlist()
+  if (length(text) > 0) {
+    result <- c(text[grep("[K]\\d", text)])[1]
+  }
+  else {
+    result <- NA
+  }
+return(result)
+}
+
+# KEEG_list(ann$EggNOG_annotation, ",")
+ann <- ann %>%
+  rowwise() %>%
+  mutate(KEGG = KEEG_list(EggNOG_annotation, ","))
+
+```
+
+# Merge with annotation
+```{r}
+big_tbl <- tax %>% 
+  full_join(ann, by = "GeneID")
+```
+
+# shiny table
+UI.R
+```{r}
+# ui <- fluidPage(
+#   titlePanel("BAGS.v1: BAltic Gene Set gene catalogue"),
+#   fluidRow(
+#     column(12,
+#       includeMarkdown("abstract.md")
+#     )
+#   ),
+#   # Create a new row for the table.
+#   DT::dataTableOutput("table")
+# )
+```
+
+server.R with DataTable
+```{r}
+# server <- function(input, output) {
+# 
+#   # Filter data based on selections
+#   output$table <- DT::renderDataTable(DT::datatable({
+#     big_tbl
+#   }))
+# 
+# }
+```
+
+# with tidy functions
+
+```{r}
+ui=fluidPage(
+  titlePanel("BAGS.v1: BAltic Gene Set gene catalogue"),
+  fluidRow(
+    column(12,
+      includeMarkdown("abstract.md")
+    )
+  ),
+  fluidRow(column(5,
+           textInput("text_input",label="textInput",value=""),
+           tableOutput("table_output"),
+    )))
+
+server=function(input, output) {
+  output$table_output <- renderTable({filter(big_tbl, GeneID == input$text_input)})
+}
+shinyApp(ui=ui,server=server)
+```
+
